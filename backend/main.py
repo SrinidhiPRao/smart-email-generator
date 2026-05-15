@@ -10,29 +10,36 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.services.llm_service import get_llm
 from backend.services.prompt_factory import PromptFactory
 
+from fastapi.middleware.cors import CORSMiddleware
+
 load_dotenv()
 
 app = FastAPI(title="Smart Email Generator", version="1.0.0")
 
+# 1. Define the origins that are allowed to talk to your API
+# Add the URL/port where your React app is running
 origins = [
-    "http://localhost:5173",
-    "http://localhost:3000"
-
+    "http://localhost:3000",  # Default React port
+    "http://localhost:5173",  # Default Vite + React port
 ]
 
+# 2. Add the middleware to your FastAPI app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = origins,   #for frontend ports.
+    allow_origins=["*"],  # Or use ["*"] to allow all (not recommended for production)
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows GET, POST, etc.
+    allow_headers=["*"],  # Allows all headers
 )
+
 
 prompt_factory = PromptFactory()
 llm = get_llm()
 
 EmailStyle = Literal["corporate", "friendly", "sales"]
-AllowedTone = Literal["formal", "friendly", "assertive", "empathetic", "professional", "casual"]
+AllowedTone = Literal[
+    "formal", "friendly", "assertive", "empathetic", "professional", "casual"
+]
 
 
 class BaseEmailRequest(BaseModel):
@@ -97,7 +104,9 @@ def parse_json_response(content: str | list) -> dict:
     except json.JSONDecodeError:
         match = re.search(r"\{.*\}", content, re.DOTALL)
         if not match:
-            raise HTTPException(status_code=500, detail="Model did not return valid JSON.")
+            raise HTTPException(
+                status_code=500, detail="Model did not return valid JSON."
+            )
         return json.loads(match.group(0))
 
 
